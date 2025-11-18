@@ -1,4 +1,4 @@
-# Whisper Turbo Transcription
+# Whisper Turbo Transcription GUI
 
 A modern, easy-to-use desktop app for fast audio transcription using OpenAI Whisper Turbo, with GPU/CPU selection, progress bar, and a beautiful Tkinter interface.
 
