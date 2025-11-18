@@ -44,9 +44,6 @@ python WhisperTurboGUI.py
    ```
 3. Find your `.exe` in the `dist` folder.
 
-## Screenshots
-![App Screenshot](screenshot.png)
-
 ## License
 MIT
 
