@@ -14,7 +14,17 @@ root_logger.setLevel(logging.INFO)
 root_logger.addHandler(handler)
 
 class WhisperTranscriptionApp:
+	"""Main application class for the Whisper Turbo Transcription GUI.
+	
+	This class handles the UI setup, model loading, audio transcription,
+	and user interactions for transcribing audio files using OpenAI's Whisper model.
+	"""
 	def copy_transcription(self):
+		"""Copy the transcription text to the clipboard.
+		
+		Retrieves the text from the text area and copies it to the system clipboard.
+		Provides visual feedback by temporarily changing the button text.
+		"""
 		text = self.text_area.get("1.0", "end").strip()
 		if text:
 			self.root.clipboard_clear()
@@ -22,6 +32,14 @@ class WhisperTranscriptionApp:
 			self.copy_btn.configure(text="Copied!")
 			self.root.after(1200, lambda: self.copy_btn.configure(text="Copy"))
 	def __init__(self, root):
+		"""Initialize the WhisperTranscriptionApp with the main window.
+		
+		Sets up window properties, initializes variables, builds the UI,
+		and starts model loading.
+		
+		Args:
+			root: The root CustomTkinter window.
+		"""
 		self.root = root
 		self.root.title("Whisper Turbo Transcription")
 		# Larger default window so UI elements are not clipped on startup
@@ -42,6 +60,11 @@ class WhisperTranscriptionApp:
 		self.load_model()
         
 	def setup_ui(self):
+		"""Set up the user interface components.
+		
+		Creates and configures all UI elements including labels, buttons,
+		progress bar, and text area.
+		"""
 		# Title
 		title = ctk.CTkLabel(
 			self.root,
@@ -74,11 +97,6 @@ class WhisperTranscriptionApp:
 		)
 		self.file_label.pack(side="left", padx=10)
 
-		def on_enter(e):
-			pass
-		def on_leave(e):
-			pass
-
 		select_btn = ctk.CTkButton(
 			file_frame,
 			text="Select Audio File",
@@ -93,10 +111,6 @@ class WhisperTranscriptionApp:
 		select_btn.pack(side="right")
         
 		# Transcribe button
-		def on_transcribe_enter(e):
-			pass
-		def on_transcribe_leave(e):
-			pass
 		self.transcribe_btn = ctk.CTkButton(
 			self.root,
 			text="Transcribe",
@@ -153,10 +167,6 @@ class WhisperTranscriptionApp:
 		self.text_area.pack(fill="both", expand=True, pady=5, side="left")
 
 		# Copy button at top-right of transcription area
-		def on_copy_enter(e):
-			pass
-		def on_copy_leave(e):
-			pass
 		self.copy_btn = ctk.CTkButton(
 			text_frame,
 			text="Copy",
@@ -172,10 +182,6 @@ class WhisperTranscriptionApp:
 		self.copy_btn.pack(anchor="ne", padx=0, pady=(0, 5), side="top")
         
 		# Export button
-		def on_export_enter(e):
-			pass
-		def on_export_leave(e):
-			pass
 		self.export_btn = ctk.CTkButton(
 			self.root,
 			text="Export Transcription",
@@ -191,7 +197,11 @@ class WhisperTranscriptionApp:
 		self.export_btn.pack(pady=12)
         
 	def load_model(self):
-		"""Load Whisper Turbo model in background, show loading indicator"""
+		"""Load the Whisper Turbo model in a background thread.
+		
+		Determines the device (CPU/CUDA), loads the model asynchronously,
+		and updates the UI with status and errors.
+		"""
 		def load():
 			try:
 				import torch
@@ -225,12 +235,19 @@ class WhisperTranscriptionApp:
 		thread.start()
 
 	def reload_model(self, *_):
+		"""Reload the Whisper model when device selection changes.
+		
+		Resets the model and triggers a new load with the updated device.
+		"""
 		self.status_label.configure(text="Reloading model...", text_color="#666666")
 		self.model = None
 		self.load_model()
         
 	def select_file(self):
-		"""Open file dialog to select audio file"""
+		"""Open a file dialog to select an audio file.
+		
+		Updates the UI with the selected file name and enables transcription.
+		"""
 		filetypes = (
 			("Audio files", "*.mp3 *.wav *.m4a *.ogg *.flac *.webm *.mp4"),
 			("All files", "*.*")
@@ -249,7 +266,11 @@ class WhisperTranscriptionApp:
 			self.export_btn.configure(state="disabled")
             
 	def transcribe(self):
-		"""Transcribe the selected audio file with progress"""
+		"""Transcribe the selected audio file with progress updates.
+		
+		Loads audio, chunks it, transcribes each chunk in a background thread,
+		and updates the UI with progress and results.
+		"""
 		if not self.audio_file or self.model_loading:
 			return
 		if not self.model:
@@ -309,7 +330,10 @@ class WhisperTranscriptionApp:
 		thread.start()
         
 	def update_transcription_ui(self):
-		"""Update UI after transcription completes"""
+		"""Update the UI after transcription completes.
+		
+		Inserts the transcription text, updates status, and enables export.
+		"""
 		self.text_area.insert("1.0", self.transcription)
 		self.status_label.configure(text="Transcription complete!", text_color="#10b981")
 		self.transcribe_btn.configure(state="normal")
@@ -317,14 +341,23 @@ class WhisperTranscriptionApp:
 		self.progress_bar.set(1.0)
         
 	def show_error(self, error_msg):
-		"""Show error message"""
+		"""Display an error message to the user.
+		
+		Logs the error and shows a dialog with the error details.
+		
+		Args:
+			error_msg: The error message to display.
+		"""
 		logging.error("Transcription failed: %s", error_msg)
 		self.status_label.configure(text="Transcription failed", text_color="#ef4444")
 		self.transcribe_btn.configure(state="normal")
 		messagebox.showerror("Error", f"Transcription failed:\n{error_msg}")
         
 	def export_transcription(self):
-		"""Export transcription to a text file"""
+		"""Export the transcription to a text file.
+		
+		Opens a save dialog and writes the transcription to the selected file.
+		"""
 		if not self.transcription:
 			return
             
