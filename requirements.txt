@@ -1,0 +1,16 @@
+customtkinter==5.2.2
+openai-whisper==20250625
+torch==2.7.1+cu118
+numpy==2.2.5
+soundfile==0.13.1
+ffmpeg-python
+
+# Notes:
+# - `ffmpeg` (the CLI) is required by the audio loader used by whisper; install it separately for your OS.
+# - `ffmpeg-python` was not present in the current environment, so it is left unpinned here.
+# - If you prefer a fully pinned list for the entire environment, run:
+#
+#   pip freeze > requirements.txt
+#
+#   and then review the file. On Windows, pinned torch wheels may include a build tag
+#   (e.g. +cu118) that requires the same CUDA setup on the target machine.

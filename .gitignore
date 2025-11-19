@@ -1,0 +1,29 @@
+# Build artifacts
+/dist/
+*.exe
+*.msi
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+venv/
+.env/
+.venv/
+.venv*
+
+# Editor files
+.vscode/
+*.sublime-workspace
+*.sublime-project
+
+# Logs
+*.log
+whisper_gui.log
+
+# PyInstaller
+build/
+*.spec
+dist/

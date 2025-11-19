@@ -1,25 +1,36 @@
-import tkinter as tk
-from tkinter import filedialog, messagebox, scrolledtext
+import customtkinter as ctk
+from tkinter import filedialog, messagebox
 import threading
 import whisper
 import os
+import logging
+
+# Basic logging to file for easier debugging
+logging.basicConfig(
+	filename="whisper_gui.log",
+	level=logging.INFO,
+	format="%(asctime)s %(levelname)s: %(message)s",
+)
 
 class WhisperTranscriptionApp:
 	def copy_transcription(self):
-		text = self.text_area.get("1.0", tk.END).strip()
+		text = self.text_area.get("0.0", "end").strip()
 		if text:
 			self.root.clipboard_clear()
 			self.root.clipboard_append(text)
-			self.copy_btn.config(text="Copied!", bg="#22d3ee")
-			self.root.after(1200, lambda: self.copy_btn.config(text="Copy", bg="#06b6d4"))
+			self.copy_btn.configure(text="Copied!")
+			self.root.after(1200, lambda: self.copy_btn.configure(text="Copy"))
 	def __init__(self, root):
 		self.root = root
 		self.root.title("Whisper Turbo Transcription")
-		self.root.geometry("900x650")
+		# Larger default window so UI elements are not clipped on startup
+		self.root.geometry("1100x820")
+		# Prevent the window from being resized smaller than the original layout
+		self.root.minsize(900, 650)
 		self.root.configure(bg="#181824")
         
 		self.model = None
-		self.device = tk.StringVar(value="auto")
+		self.device = ctk.StringVar(value="auto")
 		self.audio_file = None
 		self.transcription = ""
         
@@ -31,195 +42,152 @@ class WhisperTranscriptionApp:
         
 	def setup_ui(self):
 		# Title
-		title = tk.Label(
+		title = ctk.CTkLabel(
 			self.root,
 			text="Whisper Turbo Transcription",
 			font=("Segoe UI", 28, "bold"),
-			bg="#181824",
-			fg="#f8fafc"
+			text_color="#f8fafc"
 		)
 		title.pack(pady=(30, 10))
 
 		# Device selection
 		import torch
-		device_frame = tk.Frame(self.root, bg="#181824")
+		device_frame = ctk.CTkFrame(self.root, fg_color="#181824")
 		device_frame.pack(pady=(0, 10))
-		tk.Label(device_frame, text="Device:", font=("Segoe UI", 12), bg="#181824", fg="#f8fafc").pack(side="left", padx=(0, 5))
+		ctk.CTkLabel(device_frame, text="Device:", font=("Segoe UI", 12), text_color="#f8fafc").pack(side="left", padx=(0, 5))
 		available_devices = ["auto", "cpu"]
 		if torch.cuda.is_available():
 			available_devices.append("cuda")
-		self.device_menu = tk.OptionMenu(device_frame, self.device, *available_devices)
-		self.device_menu.config(font=("Segoe UI", 12), bg="#23263a", fg="#f8fafc", highlightthickness=0, bd=0, relief="flat")
+		self.device_menu = ctk.CTkOptionMenu(device_frame, variable=self.device, values=available_devices, fg_color="#23263a", text_color="#f8fafc")
 		self.device_menu.pack(side="left")
         
 		# File selection frame
-		file_frame = tk.Frame(self.root, bg="#181824")
+		file_frame = ctk.CTkFrame(self.root, fg_color="#181824")
 		file_frame.pack(pady=10, padx=40, fill="x")
 
-		self.file_label = tk.Label(
+		self.file_label = ctk.CTkLabel(
 			file_frame,
 			text="No file selected",
 			font=("Segoe UI", 12),
-			bg="#181824",
-			fg="#f8fafc"
+			text_color="#f8fafc"
 		)
 		self.file_label.pack(side="left", padx=10)
 
 		def on_enter(e):
-			select_btn.config(bg="#7c3aed")
+			pass
 		def on_leave(e):
-			select_btn.config(bg="#6366f1")
+			pass
 
-		select_btn = tk.Button(
+		select_btn = ctk.CTkButton(
 			file_frame,
 			text="Select Audio File",
 			command=self.select_file,
-			bg="#6366f1",
-			fg="white",
+			fg_color="#6366f1",
+			hover_color="#7c3aed",
+			text_color="white",
 			font=("Segoe UI", 13, "bold"),
-			padx=28,
-			pady=12,
-			relief="flat",
-			cursor="hand2",
-			activebackground="#7c3aed",
-			activeforeground="white",
-			bd=0,
-			highlightthickness=0
+			width=140,
+			height=40
 		)
 		select_btn.pack(side="right")
-		select_btn.bind("<Enter>", on_enter)
-		select_btn.bind("<Leave>", on_leave)
         
 		# Transcribe button
 		def on_transcribe_enter(e):
-			self.transcribe_btn.config(bg="#a78bfa")
+			pass
 		def on_transcribe_leave(e):
-			self.transcribe_btn.config(bg="#8b5cf6")
-		self.transcribe_btn = tk.Button(
+			pass
+		self.transcribe_btn = ctk.CTkButton(
 			self.root,
 			text="Transcribe",
 			command=self.transcribe,
-			bg="#8b5cf6",
-			fg="white",
+			fg_color="#8b5cf6",
+			hover_color="#a78bfa",
+			text_color="white",
 			font=("Segoe UI", 16, "bold"),
-			padx=50,
-			pady=18,
-			relief="flat",
-			cursor="hand2",
-			state="disabled",
-			activebackground="#a78bfa",
-			activeforeground="white",
-			bd=0,
-			highlightthickness=0
+			width=200,
+			height=50,
+			state="disabled"
 		)
 		self.transcribe_btn.pack(pady=25)
-		self.transcribe_btn.bind("<Enter>", on_transcribe_enter)
-		self.transcribe_btn.bind("<Leave>", on_transcribe_leave)
         
 		# Status label
-		self.status_label = tk.Label(
+		self.status_label = ctk.CTkLabel(
 			self.root,
 			text="Loading Whisper Turbo model...",
 			font=("Segoe UI", 12, "italic"),
-			bg="#181824",
-			fg="#fbbf24"
+			text_color="#fbbf24"
 		)
 		self.status_label.pack(pady=(0, 10))
 
-		# Progress bar
-		import tkinter.ttk as ttk
-		style = ttk.Style()
-		style.theme_use('default')
-		style.configure("TProgressbar", thickness=18, troughcolor="#23263a", background="#22d3ee", bordercolor="#23263a", lightcolor="#22d3ee", darkcolor="#22d3ee")
-		self.progress_var = tk.DoubleVar()
-		self.progress_bar = ttk.Progressbar(
+		# Progress bar (use .set() to update progress)
+		self.progress_bar = ctk.CTkProgressBar(
 			self.root,
-			variable=self.progress_var,
-			maximum=100,
-			length=520,
-			mode="determinate",
-			style="TProgressbar"
+			width=520,
+			height=18,
+			progress_color="#22d3ee",
+			fg_color="#23263a"
 		)
 		self.progress_bar.pack(pady=(0, 18))
         
 		# Transcription text area
-		text_frame = tk.Frame(self.root, bg="#181824")
+		text_frame = ctk.CTkFrame(self.root, fg_color="#181824")
 		text_frame.pack(pady=10, padx=40, fill="both", expand=True)
 
-		tk.Label(
+		ctk.CTkLabel(
 			text_frame,
 			text="Transcription:",
 			font=("Segoe UI", 15, "bold"),
-			bg="#181824",
-			fg="#f8fafc"
+			text_color="#f8fafc"
 		).pack(anchor="w", pady=(0, 5))
 
 		# Transcription text area with lighter background and brighter text
-		self.text_area = scrolledtext.ScrolledText(
+		self.text_area = ctk.CTkTextbox(
 			text_frame,
-			wrap=tk.WORD,
 			font=("Segoe UI", 12),
-			padx=12,
-			pady=12,
-			relief="flat",
-			borderwidth=0,
-			bg="#23263a",
-			fg="#f8fafc",
-			insertbackground="#22d3ee"
+			fg_color="#23263a",
+			text_color="#f8fafc",
+			width=600,
+			height=200
 		)
 		self.text_area.pack(fill="both", expand=True, pady=5, side="left")
 
 		# Copy button at top-right of transcription area
 		def on_copy_enter(e):
-			self.copy_btn.config(bg="#22d3ee")
+			pass
 		def on_copy_leave(e):
-			self.copy_btn.config(bg="#06b6d4")
-		self.copy_btn = tk.Button(
+			pass
+		self.copy_btn = ctk.CTkButton(
 			text_frame,
 			text="Copy",
 			command=self.copy_transcription,
-			bg="#06b6d4",
-			fg="white",
+			fg_color="#06b6d4",
+			hover_color="#22d3ee",
+			text_color="white",
 			font=("Segoe UI", 11, "bold"),
-			padx=18,
-			pady=6,
-			relief="flat",
-			cursor="hand2",
-			state="normal",
-			activebackground="#22d3ee",
-			activeforeground="white",
-			bd=0,
-			highlightthickness=0
+			width=80,
+			height=32,
+			state="normal"
 		)
 		self.copy_btn.pack(anchor="ne", padx=0, pady=(0, 5), side="top")
-		self.copy_btn.bind("<Enter>", on_copy_enter)
-		self.copy_btn.bind("<Leave>", on_copy_leave)
         
 		# Export button
 		def on_export_enter(e):
-			self.export_btn.config(bg="#38bdf8")
+			pass
 		def on_export_leave(e):
-			self.export_btn.config(bg="#3b82f6")
-		self.export_btn = tk.Button(
+			pass
+		self.export_btn = ctk.CTkButton(
 			self.root,
 			text="Export Transcription",
 			command=self.export_transcription,
-			bg="#3b82f6",
-			fg="white",
+			fg_color="#3b82f6",
+			hover_color="#38bdf8",
+			text_color="white",
 			font=("Segoe UI", 13, "bold"),
-			padx=36,
-			pady=12,
-			relief="flat",
-			cursor="hand2",
-			state="disabled",
-			activebackground="#38bdf8",
-			activeforeground="white",
-			bd=0,
-			highlightthickness=0
+			width=200,
+			height=40,
+			state="disabled"
 		)
 		self.export_btn.pack(pady=12)
-		self.export_btn.bind("<Enter>", on_export_enter)
-		self.export_btn.bind("<Leave>", on_export_leave)
         
 	def load_model(self):
 		"""Load Whisper Turbo model in background, show loading indicator"""
@@ -234,26 +202,29 @@ class WhisperTranscriptionApp:
 					device = "cpu"
 					self.root.after(0, lambda: messagebox.showinfo("Device fallback", "CUDA is not available. Falling back to CPU."))
 				self.model = whisper.load_model("turbo", device=device)
-				self.model_loading = False
-				self.root.after(0, lambda: self.status_label.config(text=f"Ready to transcribe ({device})", fg="#10b981"))
-				self.root.after(0, lambda: self.transcribe_btn.config(state="normal"))
+				self.root.after(0, lambda: self.status_label.configure(text=f"Ready to transcribe ({device})", text_color="#10b981"))
+				self.root.after(0, lambda: self.transcribe_btn.configure(state="normal"))
+				logging.info("Model loaded on device: %s", device)
 				# If fallback occurred, update dropdown
 				if orig_device != device:
 					self.root.after(0, lambda: self.device.set(device))
 			except Exception as e:
-				self.model_loading = False
-				self.root.after(0, lambda err=str(e): self.status_label.config(text=f"Error loading model: {err}", fg="#ef4444"))
+				logging.exception("Failed to load model: %s", e)
+				self.root.after(0, lambda err=str(e): self.status_label.configure(text=f"Error loading model: {err}", text_color="#ef4444"))
 				self.root.after(0, lambda err=str(e): messagebox.showerror("Error", f"Failed to load Whisper model:\n{err}"))
-				self.root.after(0, lambda: self.transcribe_btn.config(state="disabled"))
+				self.root.after(0, lambda: self.transcribe_btn.configure(state="disabled"))
+			finally:
+				# Ensure flag is cleared even if an unexpected error occurs
+				self.model_loading = False
 
 		self.model_loading = True
-		self.status_label.config(text="Loading Whisper Turbo model...", fg="#666")
-		self.transcribe_btn.config(state="disabled")
+		self.status_label.configure(text="Loading Whisper Turbo model...", text_color="#666666")
+		self.transcribe_btn.configure(state="disabled")
 		thread = threading.Thread(target=load, daemon=True)
 		thread.start()
 
 	def reload_model(self, *_):
-		self.status_label.config(text="Reloading model...", fg="#666")
+		self.status_label.configure(text="Reloading model...", text_color="#666666")
 		self.model = None
 		self.load_model()
         
@@ -271,23 +242,23 @@ class WhisperTranscriptionApp:
         
 		if filename:
 			self.audio_file = filename
-			self.file_label.config(text=os.path.basename(filename), fg="#f8fafc")
-			self.transcribe_btn.config(state="normal")
-			self.text_area.delete(1.0, tk.END)
-			self.export_btn.config(state="disabled")
+			self.file_label.configure(text=os.path.basename(filename))
+			self.transcribe_btn.configure(state="normal")
+			self.text_area.delete("0.0", "end")
+			self.export_btn.configure(state="disabled")
             
 	def transcribe(self):
 		"""Transcribe the selected audio file with progress"""
 		if not self.audio_file or self.model_loading:
 			return
 		if not self.model:
-			self.status_label.config(text="Model not loaded yet. Please wait...", fg="#ef4444")
+			self.status_label.configure(text="Model not loaded yet. Please wait...")
 			return
 
-		self.transcribe_btn.config(state="disabled")
-		self.status_label.config(text="Transcribing... This may take a moment", fg="#f59e0b")
-		self.text_area.delete(1.0, tk.END)
-		self.progress_var.set(0)
+		self.transcribe_btn.configure(state="disabled")
+		self.status_label.configure(text="Transcribing... This may take a moment", text_color="#f59e0b")
+		self.text_area.delete("0.0", "end")
+		self.progress_bar.set(0.0)
 
 		def run_transcription():
 			try:
@@ -304,25 +275,33 @@ class WhisperTranscriptionApp:
 				num_chunks = math.ceil(total_samples / samples_per_chunk)
 				segments = []
 
+				import tempfile
+				import soundfile as sf
 				for i in range(num_chunks):
 					start = i * samples_per_chunk
 					end = min((i + 1) * samples_per_chunk, total_samples)
 					chunk_audio = audio[start:end]
-					# Save chunk to temp file (as wav)
-					import tempfile
-					import soundfile as sf
-					with tempfile.NamedTemporaryFile(suffix='.wav', delete=False) as tmp:
-						sf.write(tmp.name, chunk_audio, sr)
-						temp_path = tmp.name
-					result = self.model.transcribe(temp_path)
-					os.remove(temp_path)
-					segments.append(result["text"])
+					# Save chunk to temp file (as wav). Ensure removal in finally.
+					temp_path = None
+					try:
+						with tempfile.NamedTemporaryFile(suffix='.wav', delete=False) as tmp:
+							sf.write(tmp.name, chunk_audio, sr)
+							temp_path = tmp.name
+							result = self.model.transcribe(temp_path)
+							segments.append(result.get("text", ""))
+					finally:
+						if temp_path:
+							try:
+								os.remove(temp_path)
+							except Exception:
+								logging.exception("Failed to remove temp file: %s", temp_path)
 					percent = ((i + 1) / num_chunks) * 100
-					self.root.after(0, lambda p=percent: self.progress_var.set(p))
-					self.root.after(0, lambda p=percent: self.status_label.config(text=f"Transcribing... {p:.0f}%", fg="#f59e0b"))
+					self.root.after(0, lambda p=percent: self.progress_bar.set(p/100.0))
+					self.root.after(0, lambda p=percent: self.status_label.configure(text=f"Transcribing... {p:.0f}%", text_color="#f59e0b"))
 				self.transcription = " ".join(segments)
 				self.root.after(0, self.update_transcription_ui)
 			except Exception as e:
+				logging.exception("Transcription error: %s", e)
 				self.root.after(0, lambda err=str(e): self.show_error(err))
 
 		thread = threading.Thread(target=run_transcription, daemon=True)
@@ -330,16 +309,17 @@ class WhisperTranscriptionApp:
         
 	def update_transcription_ui(self):
 		"""Update UI after transcription completes"""
-		self.text_area.insert(1.0, self.transcription)
-		self.status_label.config(text="Transcription complete!", fg="#10b981")
-		self.transcribe_btn.config(state="normal")
-		self.export_btn.config(state="normal")
-		self.progress_var.set(100)
+		self.text_area.insert("0.0", self.transcription)
+		self.status_label.configure(text="Transcription complete!", text_color="#10b981")
+		self.transcribe_btn.configure(state="normal")
+		self.export_btn.configure(state="normal")
+		self.progress_bar.set(1.0)
         
 	def show_error(self, error_msg):
 		"""Show error message"""
-		self.status_label.config(text="Transcription failed", fg="#ef4444")
-		self.transcribe_btn.config(state="normal")
+		logging.error("Transcription failed: %s", error_msg)
+		self.status_label.configure(text="Transcription failed", text_color="#ef4444")
+		self.transcribe_btn.configure(state="normal")
 		messagebox.showerror("Error", f"Transcription failed:\n{error_msg}")
         
 	def export_transcription(self):
@@ -362,7 +342,9 @@ class WhisperTranscriptionApp:
 				messagebox.showerror("Error", f"Failed to save file:\n{str(e)}")
 
 def main():
-	root = tk.Tk()
+	ctk.set_appearance_mode("dark")
+	ctk.set_default_color_theme("blue")
+	root = ctk.CTk()
 	app = WhisperTranscriptionApp(root)
 	root.mainloop()
 
